@@ -1,7 +1,12 @@
+using FileManager.Configurations;
+using FileManager.Data;
+using FileManager.IRepository;
+using FileManager.Repository;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -11,6 +16,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 namespace FileManager
 {
@@ -26,12 +32,25 @@ namespace FileManager
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddDbContext<FileManagerContext>(options =>
 
-            services.AddControllers();
+                options.UseSqlServer(Configuration.GetConnectionString("sqlConnection"))
+            );
+
+
+            services.AddAutoMapper(typeof(MapperInitializer));
+
+            services.AddTransient<IUnitOfWork, UnitOfWork>();
+
+            services.AddTransient<IEncrypting, Encrypting>();
+
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "FileManager", Version = "v1" });
             });
+
+            services.AddControllers().AddNewtonsoftJson(op => 
+                op.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
