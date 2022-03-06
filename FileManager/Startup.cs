@@ -48,6 +48,8 @@ namespace FileManager
 
             services.AddTransient<IUnsplashService, UnsplashService>();
 
+            services.AddTransient<ISendGridService, SendGridService>();
+
             services.AddScoped<IAuthService, AuthService>();
 
             services.AddTransient<IEncrypting, Encrypting>();

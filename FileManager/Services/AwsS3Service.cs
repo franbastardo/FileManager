@@ -4,7 +4,9 @@ using Amazon.S3.Transfer;
 using FileManager.IRepository;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using System;
+using System.Drawing;
 using System.IO;
 using System.Net;
 using System.Threading.Tasks;
@@ -15,20 +17,17 @@ namespace FileManager.Services
     {
         private readonly IAmazonS3 _awsS3Client;
         private readonly string _bucketName ;
-        public AwsS3Service()
+		private readonly ILogger<AwsS3Service> _logger;
+        public AwsS3Service(ILogger<AwsS3Service> logger)
         {
             _awsS3Client = new AmazonS3Client(
-                Environment.GetEnvironmentVariable("S3KEY"), 
-                Environment.GetEnvironmentVariable("S3SECRET"),
-				Amazon.RegionEndpoint.EUWest1);
+            Environment.GetEnvironmentVariable("S3KEY"), 
+            Environment.GetEnvironmentVariable("S3SECRET"),
+			Amazon.RegionEndpoint.EUWest1);
 			_bucketName = Environment.GetEnvironmentVariable("S3BUCKETNAME");
+			_logger = logger;
 
 		}
-
-        public Task<bool> DeleteFileAsync(string fileName, string versionId = "")
-        {
-            throw new System.NotImplementedException();
-        }
 
         public async Task<byte[]> DownloadFileAsync(string file)
         {
@@ -54,13 +53,39 @@ namespace FileManager.Services
 				}
 
 				if (ms is null || ms.ToArray().Length < 1)
-					throw new FileNotFoundException(string.Format("The document '{0}' is not found", file));
+					_logger.LogInformation(string.Format("The document '{0}' is not found", file));
 
 				return ms.ToArray();
 			}
-			catch (Exception)
+			catch (Exception ex)
 			{
-				throw;
+				_logger.LogInformation($"Something went wrong with {ex}");
+				return null;
+			}
+		}
+
+        public async Task<string> UpdateFileAsync(string oldName, string newName)
+        {
+			try
+			{
+				var copy = new CopyObjectRequest();
+				copy.SourceBucket = _bucketName;
+				copy.SourceKey = oldName;
+				copy.DestinationBucket = _bucketName;
+				copy.DestinationKey = newName;
+				await _awsS3Client.CopyObjectAsync(copy);
+
+                var delete = new DeleteObjectRequest();
+                delete.Key = oldName;
+                delete.BucketName = _bucketName;
+				await _awsS3Client.DeleteObjectAsync(delete);
+
+                return $"https://{_bucketName}.{Amazon.RegionEndpoint.EUWest3}.s3.amazonaws.com/{newName}";
+			}
+			catch (Exception ex)
+			{
+				_logger.LogInformation($"Something went wrong with {ex}");
+				return null;
 			}
 		}
 
@@ -84,13 +109,44 @@ namespace FileManager.Services
 
 					await fileTransferUtility.UploadAsync(uploadRequest);
 
-					return  $"https://{_bucketName}.{Amazon.RegionEndpoint.EUWest3}.s3.amazonaws.com/{file.FileName}"; ;
+					return  $"https://{_bucketName}.{Amazon.RegionEndpoint.EUWest3}.s3.amazonaws.com/{file.FileName}"; 
 				}
 			}
-			catch (Exception)
+			catch (Exception ex)
 			{
-				throw;
+				_logger.LogInformation($"Something went wrong with {ex}");
+				return null;
 			}
 		}
-    }
+
+		public async Task<string> UploadFileAsync(Bitmap file, string name)
+		{
+			try
+			{
+				using (var newMemoryStream = new MemoryStream())
+				{
+					file.Save(newMemoryStream, System.Drawing.Imaging.ImageFormat.Jpeg);
+
+					var uploadRequest = new TransferUtilityUploadRequest
+					{
+						InputStream = newMemoryStream,
+						Key = name,
+						BucketName = _bucketName,
+						ContentType = "binary/octet-stream"
+					};
+
+					var fileTransferUtility = new TransferUtility(_awsS3Client);
+
+					await fileTransferUtility.UploadAsync(uploadRequest);
+
+					return $"https://{_bucketName}.{Amazon.RegionEndpoint.EUWest3}.s3.amazonaws.com/{name}"; ;
+				}
+			}
+			catch (Exception ex)
+			{
+				_logger.LogInformation($"Something went wrong with {ex}");
+				return null;
+			}
+		}
+	}
 }

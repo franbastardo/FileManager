@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
+using System.Drawing;
 using System.Threading.Tasks;
 
 namespace FileManager.IRepository
@@ -7,6 +8,7 @@ namespace FileManager.IRepository
     {
         Task<byte[]> DownloadFileAsync(string file);
         Task<string> UploadFileAsync(IFormFile file);
-        Task<bool> DeleteFileAsync(string fileName, string versionId = "");
+        Task<string> UploadFileAsync(Bitmap file, string name);
+        Task<string> UpdateFileAsync(string oldName, string newName);
     }
 }

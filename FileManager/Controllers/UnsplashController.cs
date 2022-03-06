@@ -22,7 +22,7 @@ namespace FileManager.Controllers
             _logger = logger;
         }
 
-        
+        [Authorize]
         [HttpGet]
         [Route("search/{param}")]
         public async Task<IActionResult> GetPhotosUnsplash(string param)
@@ -30,6 +30,23 @@ namespace FileManager.Controllers
             try
             {
                 var result = await _unsplashService.SearchPhotos(param);
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Something went Wrong");
+                return StatusCode(500, "Internal Server Error");
+            }
+        }
+
+        [HttpGet]
+        [Route("upload/{photoId}")]
+        public async Task<IActionResult> UploadPhotoUnsplash(string photoId)
+        {
+            try
+            {
+                var result = await _unsplashService.uploadPhoto(photoId);
 
                 return Ok(result);
             }

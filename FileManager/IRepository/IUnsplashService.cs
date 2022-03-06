@@ -6,7 +6,7 @@ namespace FileManager.IRepository
 {
     public interface IUnsplashService
     {
-        Task<string> uploadPhoto();
+        Task<string> uploadPhoto(string photoId);
         Task<ImageDTO> SearchPhotos(string parameter);
     }
 }
