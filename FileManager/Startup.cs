@@ -38,10 +38,15 @@ namespace FileManager
                 options.UseSqlServer(Configuration.GetConnectionString("sqlConnection"))
             );
 
+            services.AddAuthentication();
+
+            services.ConfigureJWT(Configuration);
 
             services.AddAutoMapper(typeof(MapperInitializer));
 
             services.AddTransient<IUnitOfWork, UnitOfWork>();
+
+            services.AddScoped<IAuthService, AuthService>();
 
             services.AddTransient<IEncrypting, Encrypting>();
 
@@ -69,6 +74,8 @@ namespace FileManager
             app.UseHttpsRedirection();
 
             app.UseRouting();
+
+            app.UseAuthentication();
 
             app.UseAuthorization();
 

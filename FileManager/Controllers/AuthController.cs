@@ -20,13 +20,20 @@ namespace FileManager.Controllers
         private readonly ILogger<AuthController> _logger;
         private readonly IMapper _mapper;
         private readonly IEncrypting _encrypting;
+        private readonly IAuthService _authService;
 
-        public AuthController(IUnitOfWork unitOfWork, ILogger<AuthController> logger, IMapper mapper, IEncrypting encrypting)
+        public AuthController(
+            IUnitOfWork unitOfWork, 
+            ILogger<AuthController> logger, 
+            IMapper mapper, 
+            IEncrypting encrypting, 
+            IAuthService authService)
         {
             _unitOfWork = unitOfWork;
             _logger = logger;
             _mapper = mapper;
             _encrypting = encrypting;
+            _authService = authService;
         }
 
         [HttpPost]
@@ -53,7 +60,9 @@ namespace FileManager.Controllers
                 var insertedUser = await _unitOfWork.Users.Insert(newUser);
                 await _unitOfWork.Save();
 
-                return Ok("User created successfully");
+                var token = await _authService.BuildToken(insertedUser.Entity.Credentials.Email);
+
+                return Ok(new ResponseDTO { Message = "successfully registered", Token = token});
             }
             catch (Exception ex)
             {
@@ -83,7 +92,9 @@ namespace FileManager.Controllers
                 {
                     return Unauthorized(new ResponseDTO { Message = "Wrong Credentials" });
                 }
-                return Ok();
+                var token = await _authService.BuildToken(existingEmail.Email);
+
+                return Ok(new ResponseDTO { Message = "successfully logged in", Token = token });
 
             }
             catch (Exception ex)

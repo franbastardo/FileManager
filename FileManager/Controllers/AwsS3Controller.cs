@@ -5,9 +5,11 @@ using FileManager.IRepository;
 using System.Net;
 using System;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Authorization;
 
 namespace FileManager.Controllers
 {
+
     [Route("api/[controller]")]
     [ApiController]
     public class AwsS3Controller : ControllerBase
@@ -21,7 +23,8 @@ namespace FileManager.Controllers
             _logger = logger;
         }
 
-        [HttpGet("{documentName}")]
+		[Authorize]
+		[HttpGet("{documentName}")]
         public async Task<IActionResult> GetDocFromS3(string documentName)
         {
 			try
@@ -40,6 +43,7 @@ namespace FileManager.Controllers
             }
 		}
 
+		[Authorize]
 		[HttpPost]
 		public async  Task<IActionResult> UploadDocumentToS3(IFormFile file)
 		{
