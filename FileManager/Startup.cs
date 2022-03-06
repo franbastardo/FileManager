@@ -46,6 +46,8 @@ namespace FileManager
 
             services.AddTransient<IUnitOfWork, UnitOfWork>();
 
+            services.AddTransient<IUnsplashService, UnsplashService>();
+
             services.AddScoped<IAuthService, AuthService>();
 
             services.AddTransient<IEncrypting, Encrypting>();
