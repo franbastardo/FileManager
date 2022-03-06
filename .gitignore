@@ -367,3 +367,6 @@ Logs/
 
 #Migrations
 FileManager/Migrations/
+
+#DotEnv
+FileManager/.env

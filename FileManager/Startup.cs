@@ -17,6 +17,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using FileManager.Services;
 
 namespace FileManager
 {
@@ -43,6 +44,8 @@ namespace FileManager
             services.AddTransient<IUnitOfWork, UnitOfWork>();
 
             services.AddTransient<IEncrypting, Encrypting>();
+
+            services.AddTransient<IAwsS3Service, AwsS3Service>();
 
             services.AddSwaggerGen(c =>
             {
