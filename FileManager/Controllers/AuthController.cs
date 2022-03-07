@@ -21,19 +21,22 @@ namespace FileManager.Controllers
         private readonly IMapper _mapper;
         private readonly IEncrypting _encrypting;
         private readonly IAuthService _authService;
+        private readonly ISendGridService _sendGridService;
 
         public AuthController(
-            IUnitOfWork unitOfWork, 
-            ILogger<AuthController> logger, 
-            IMapper mapper, 
-            IEncrypting encrypting, 
-            IAuthService authService)
+            IUnitOfWork unitOfWork,
+            ILogger<AuthController> logger,
+            IMapper mapper,
+            IEncrypting encrypting,
+            IAuthService authService,
+            ISendGridService sendGridService)
         {
             _unitOfWork = unitOfWork;
             _logger = logger;
             _mapper = mapper;
             _encrypting = encrypting;
             _authService = authService;
+            _sendGridService = sendGridService;
         }
 
         [HttpPost]
@@ -62,7 +65,7 @@ namespace FileManager.Controllers
 
                 var token = await _authService.BuildToken(insertedUser.Entity.Credentials.Email);
 
-                return Ok(new ResponseDTO { Message = "successfully registered", Token = token});
+                return Ok(new ResponseDTO { Message = "successfully registered", Token = token });
             }
             catch (Exception ex)
             {
@@ -86,7 +89,7 @@ namespace FileManager.Controllers
                 var existingEmail = await _unitOfWork.Credentials.Get(q => q.Email == loginDTO.Email);
                 if (existingEmail == null)
                 {
-                    return BadRequest(new ResponseDTO { Message = "Email not found" });
+                    return BadRequest(new ResponseDTO { Message = "Wrong Credentials" });
                 }
                 if (!_encrypting.ComparePasswords(loginDTO.Password, existingEmail.Password))
                 {
@@ -103,5 +106,75 @@ namespace FileManager.Controllers
                 return StatusCode(500, "Internal Server Error");
             }
         }
+
+        [HttpPost]
+        [Route("recovery")]
+        public async Task<IActionResult> PasswordRecovery([FromBody] PasswordRecoveryDTO passwordRecoveryDTO)
+        {
+            
+
+            if (!ModelState.IsValid)
+            {
+                _logger.LogInformation($"Missing Email parameter");
+                return BadRequest(ModelState);
+            }
+            try
+            {
+                var existingEmail = await _unitOfWork.Credentials.Get(q => q.Email == passwordRecoveryDTO.Email);
+                if (existingEmail == null)
+                {
+                    return BadRequest(new ResponseDTO { Message = "Email not found" });
+                }
+            
+                var token = await _authService.BuildToken(existingEmail.Email);
+
+                await _sendGridService.SendEmail(token, existingEmail.Email);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Something went Wrong in the {nameof(User)}");
+                return StatusCode(500, "Internal Server Error");
+            }
+
+            return Ok(new ResponseDTO { Message = "successfully sent recovery emeail"});
+        }
+
+        [HttpPost]
+        [Route("restore/{token}")]
+        public async Task<IActionResult> PasswordRestore([FromBody] PasswordRestoreDTO passwordRestoreDTO, string token)
+        {
+            if (!ModelState.IsValid)
+            {
+                _logger.LogInformation($"Missing password parameter");
+                return BadRequest(ModelState);
+            }
+            var email = await _authService.ValidateToken(token);
+            if (email == null)
+            {
+                _logger.LogInformation($"something went wrong");
+                return StatusCode(500, "Internal Server Error");
+            }
+            if (passwordRestoreDTO.Password != passwordRestoreDTO.ConfirmPassword)
+            {
+                _logger.LogInformation($"Passwords must match");
+                return BadRequest(new ResponseDTO { Message= $"Passwords must match" });
+            }
+            try
+            {
+                var encryptedPassword = _encrypting.HashPassword(passwordRestoreDTO.Password);
+
+                var user = await _unitOfWork.Credentials.Get(q => q.Email == email);
+                user.Password = encryptedPassword;
+
+                await _unitOfWork.Credentials.Update(user);
+                await _unitOfWork.Save();
+
+                return Ok(new ResponseDTO { Message = "successfully password changed" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Something went Wrong in the {nameof(User)}");
+                return StatusCode(500, "Internal Server Error");
+            }
+        }
     }
-}

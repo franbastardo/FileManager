@@ -46,6 +46,7 @@ namespace FileManager.Controllers
 
 		[Authorize]
 		[HttpPost]
+		[Route("uploadS3")]
 		public async Task<IActionResult> UploadDocumentToS3(IFormFile file)
 		{
 			try
@@ -67,7 +68,8 @@ namespace FileManager.Controllers
 		}
 
 		[Authorize]
-		[HttpPost]
+		[HttpPut]
+		[Route("updateS3")]
 		public async Task<IActionResult> UpdateDocumentName([FromBody] UpdateFileDTO updateFileDTO)
 		{
 			if (!ModelState.IsValid)

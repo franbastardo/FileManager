@@ -4,6 +4,6 @@ namespace FileManager.IRepository
 {
     public interface ISendGridService
     {
-        Task<bool> SendEmail(string password);
+        Task<bool> SendEmail(string token, string email);
     }
 }
