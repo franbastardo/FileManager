@@ -1,5 +1,7 @@
 to run the project you will need to follow the next steps
 
+have installed VisualStudio that accepts .Net Core 5.0
+
 install NuGet packages:
 
 AutoMapper.Extensions.Microsoft.DependencyInjection
@@ -13,7 +15,7 @@ Microsoft.EntityFrameworkCore.Tools
 Serilog.AspNetCore
 Swashbuckle.AspNetCore
 
-in the root of the project create .env file with following format
+in the root of the project create .env file with following format:
 
 ##S3
 S3KEY= 
@@ -30,4 +32,10 @@ ACCESSKEY=
 SGKEY=
 SGEMAIL=
 
+to upload the tables in the database you must run: 
+
+dotnet ef migrations add InitialCreate
+dotnet ef database update
+
+and Finally run the program
 
